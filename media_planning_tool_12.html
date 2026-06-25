@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Planning Dashboard - Internal & Client Views</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        .header {
+            margin-bottom: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { font-size: 28px; margin-bottom: 10px; }
+        h2 { font-size: 16px; font-weight: 600; margin-bottom: 15px; }
+        h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+        .subtitle { color: #666; font-size: 14px; }
+        
+        .plan-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .badge-internal {
+            background: #E6F1FB;
+            color: #0C447C;
+        }
+        .badge-client {
+            background: #EAF3DE;
+            color: #27500A;
+        }
+        
+        .currency-selector {
+            display: flex;
+            gap: 10px;
+        }
+        .currency-btn {
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .currency-btn.active {
+            background: #185FA5;
+            color: white;
+            border-color: #185FA5;
+        }
+        .currency-btn:hover { border-color: #185FA5; }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #185FA5;
+            color: white;
+            border-color: #185FA5;
+        }
+        .tab-btn:hover { border-color: #185FA5; }
+
+        .plan-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 1200px) { .plan-comparison { grid-template-columns: 1fr; } }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            border: 0.5px solid #ddd;
+        }
+        .metric-card.warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        .metric-card.danger {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .metric-label { color: #666; font-size: 11px; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
+        .metric-value { font-size: 20px; font-weight: 700; color: #185FA5; }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+        tr:hover { background: #fafafa; }
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        th[style*="150px"] input {
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        input[type="number"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #185FA5;
+            box-shadow: 0 0 0 2px rgba(24, 95, 165, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        button:hover { border-color: #185FA5; background: #f5f9ff; }
+        button.primary {
+            background: #185FA5;
+            color: white;
+            border-color: #185FA5;
+        }
+        button.primary:hover { background: #0C447C; }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .details-grid:last-child { border-bottom: none; }
+        .detail-label { color: #666; font-weight: 500; }
+
+        .add-channel {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr 50px;
+            gap: 10px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            margin-top: 15px;
+            align-items: end;
+        }
+        .add-channel input { margin-bottom: 0; }
+
+        .fees-breakdown {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .fee-item {
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .fee-label { font-weight: 500; color: #666; }
+        .fee-value { font-weight: 700; color: #185FA5; font-size: 16px; }
+        .fee-total { background: #E6F1FB; font-weight: 700; font-size: 16px; }
+
+        .export-section {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .hidden { display: none; }
+        
+        .cpm-highlight {
+            background: #fff9e6;
+            padding: 12px;
+            border-left: 4px solid #BA7517;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .cpm-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📊 Media Planning Dashboard</h1>
+                <p class="subtitle">Internal Buy Rates & Client-Facing Blended CPM</p>
+            </div>
+            <div class="currency-selector">
+                <button class="currency-btn active" onclick="setCurrency('USD')">$ USD</button>
+                <button class="currency-btn" onclick="setCurrency('AED')">د.إ AED</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchPlan('edit')">Edit Plan</button>
+            <button class="tab-btn" onclick="switchPlan('internal')">Internal View</button>
+            <button class="tab-btn" onclick="switchPlan('client')">Client View</button>
+            <button class="tab-btn" onclick="switchPlan('compare')">Side-by-Side</button>
+        </div>
+
+        <div id="editTab" class="tab-content">
+            <div class="card">
+                <h2>Campaign Details</h2>
+                <div class="details-grid">
+                    <span class="detail-label">Campaign Name</span>
+                    <input type="text" id="campaignName" onchange="updateMetrics()" placeholder="Enter campaign name">
+                </div>
+                <div class="details-grid">
+                    <span class="detail-label">Client Name</span>
+                    <input type="text" id="client" onchange="updateMetrics()" placeholder="Enter client name">
+                </div>
+                <div class="details-grid">
+                    <span class="detail-label">Objective</span>
+                    <input type="text" id="objective" onchange="updateMetrics()" placeholder="e.g., Awareness & Reach">
+                </div>
+                <div class="details-grid">
+                    <span class="detail-label">Flight Start Date</span>
+                    <input type="date" id="flightStartDate" onchange="calculateCampaignDays(); updateMetrics()" placeholder="Select start date">
+                </div>
+                <div class="details-grid">
+                    <span class="detail-label">Flight End Date</span>
+                    <input type="date" id="flightEndDate" onchange="calculateCampaignDays(); updateMetrics()" placeholder="Select end date">
+                </div>
+                <div class="details-grid">
+                    <span class="detail-label">Total Campaign Days</span>
+                    <input type="number" id="campaignDays" readonly placeholder="Auto-calculated" style="background-color: #f5f5f5; cursor: not-allowed;">
+                </div>
+                <div class="details-grid">
+                    <span class="detail-label">Total Budget</span>
+                    <input type="number" id="budget" onchange="updateMetrics()" placeholder="Budget" step="100" min="0">
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>💰 Budget Tracking Summary</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Campaign Budget</div>
+                        <div class="metric-value" id="budgetTotal">$0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Assigned to Channels</div>
+                        <div class="metric-value" id="budgetAssigned">$0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Cost (incl. fees)</div>
+                        <div class="metric-value" id="budgetTotalCost">$0</div>
+                    </div>
+                    <div class="metric-card" id="budgetRemaining">
+                        <div class="metric-label">Remaining Budget</div>
+                        <div class="metric-value" id="budgetRemainingAmount">$0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Media Channels - Internal Buy Rates</h2>
+                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Enter any 2 of 3 fields (Budget, Impressions, CPM) for media channels. Or use "Flat Fee" for fixed-cost services like BLS Reporting, Creative Execution, etc.</p>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 150px;">Channel Name</th>
+                                <th style="width: 80px;">Type</th>
+                                <th style="width: 80px;">Flat Fee?</th>
+                                <th style="width: 110px;">Budget/Cost</th>
+                                <th style="width: 120px;">Impressions</th>
+                                <th style="width: 90px;">CPM</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="channelTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="add-channel">
+                    <input type="text" id="newChannelName" placeholder="Channel name">
+                    <select id="newChannelType" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option>PDOOH</option>
+                        <option>In-Store</option>
+                        <option>Mobile</option>
+                        <option>Outdoor</option>
+                        <option>Other</option>
+                    </select>
+                    <input type="number" id="newChannelBudget" placeholder="Budget/Cost" min="0" step="0.01">
+                    <input type="number" id="newChannelImpressions" placeholder="Impressions" min="0">
+                    <input type="number" id="newChannelCPM" placeholder="CPM" min="0" step="0.01">
+                    <button class="primary" onclick="addChannel()">Add</button>
+                </div>
+                <div style="margin-top: 15px;">
+                    <button onclick="clearAllChannels()" style="background: #fff3cd; color: #856404; border-color: #ffeaa7;">🗑️ Clear All</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Fee Structure (Internal Costs)</h2>
+                <div class="details-grid">
+                    <span class="detail-label">HM Management Fee (%)</span>
+                    <input type="number" id="hmFeePercent" step="0.1" min="0" onchange="updateMetrics()">
+                </div>
+                <div class="details-grid">
+                    <span class="detail-label">DSP Tech Fee (%)</span>
+                    <input type="number" id="dspFeePercent" step="0.1" min="0" onchange="updateMetrics()">
+                </div>
+                <div class="details-grid">
+                    <span class="detail-label">SSP Fee (%)</span>
+                    <input type="number" id="sspFeePercent" step="0.1" min="0" onchange="updateMetrics()">
+                </div>
+                <div class="details-grid">
+                    <span class="detail-label">VR/Agency Fee (%)</span>
+                    <input type="number" id="vrFeePercent" step="0.1" min="0" onchange="updateMetrics()">
+                </div>
+            </div>
+        </div>
+
+        <div id="internalTab" class="hidden tab-content">
+            <div class="card">
+                <span class="plan-badge badge-internal">INTERNAL VIEW - Buy Rates & Fees</span>
+                <h2 id="internalTitle">Internal Plan</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Media Cost</div>
+                        <div class="metric-value" id="internalMediaCost">$0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Fees</div>
+                        <div class="metric-value" id="internalTotalFees">$0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Cost (Internal)</div>
+                        <div class="metric-value" id="internalTotalCost">$0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Impressions</div>
+                        <div class="metric-value" id="internalImpressions">0</div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Channel</th>
+                                <th style="width: 100px;">Budget</th>
+                                <th style="width: 120px;">Impressions</th>
+                                <th style="width: 80px;">CPM (Internal)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="internalChannelTable">
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="margin-top: 30px;">Channel Budget Split</h3>
+                <div class="chart-container" style="height: 300px; margin-bottom: 20px;">
+                    <canvas id="internalBudgetChart"></canvas>
+                </div>
+
+                <h3 style="margin-top: 30px;">Fee Breakdown</h3>
+                <div class="fees-breakdown">
+                    <div>
+                        <div class="fee-item">
+                            <span class="fee-label">Media Cost</span>
+                            <span class="fee-value" id="internalFeeMediaCost">$0</span>
+                        </div>
+                        <div class="fee-item">
+                            <span class="fee-label">HM Management Fee</span>
+                            <span class="fee-value" id="internalFeeHM">$0</span>
+                        </div>
+                        <div class="fee-item">
+                            <span class="fee-label">DSP Tech Fee</span>
+                            <span class="fee-value" id="internalFeeDSP">$0</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="fee-item">
+                            <span class="fee-label">SSP Fee</span>
+                            <span class="fee-value" id="internalFeeSSP">$0</span>
+                        </div>
+                        <div class="fee-item">
+                            <span class="fee-label">VR/Agency Fee</span>
+                            <span class="fee-value" id="internalFeeVR">$0</span>
+                        </div>
+                        <div class="fee-item fee-total">
+                            <span class="fee-label">Total Fees</span>
+                            <span class="fee-value" id="internalFeeTotalAmount">$0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="clientTab" class="hidden tab-content">
+            <div class="card">
+                <span class="plan-badge badge-client">CLIENT VIEW - Blended CPM</span>
+                <h2 id="clientTitle">Client Proposal</h2>
+                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">All fees are baked into the CPM rate. Client sees only media cost and blended CPM.</p>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Investment</div>
+                        <div class="metric-value" id="clientTotalCost">$0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Impressions</div>
+                        <div class="metric-value" id="clientImpressions">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Blended CPM (with fees)</div>
+                        <div class="metric-value" style="color: #639922;" id="clientBlendedCPM">$0</div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Channel</th>
+                                <th style="width: 100px;">Investment</th>
+                                <th style="width: 120px;">Impressions</th>
+                                <th style="width: 100px;">Blended CPM</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientChannelTable">
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="margin-top: 30px;">Channel Investment Split</h3>
+                <div class="chart-container" style="height: 300px; margin-bottom: 20px;">
+                    <canvas id="clientBudgetChart"></canvas>
+                </div>
+
+                <div class="cpm-highlight">
+                    <strong>Client Investment Summary:</strong><br>
+                    Total Investment: <strong id="clientSummaryInvestment">$0</strong> | 
+                    Total Impressions: <strong id="clientSummaryImpressions">0</strong> | 
+                    Blended CPM: <strong id="clientSummaryBlendedCPM">$0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div id="compareTab" class="hidden tab-content">
+            <div class="plan-comparison">
+                <div class="card">
+                    <span class="plan-badge badge-internal">INTERNAL</span>
+                    <h3>Buy Rates & Fees</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Media Cost</div>
+                            <div class="metric-value" id="compMediaCost">$0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Total Fees</div>
+                            <div class="metric-value" id="compFees">$0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Total Cost</div>
+                            <div class="metric-value" id="compInternalTotal">$0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <span class="plan-badge badge-client">CLIENT</span>
+                    <h3>Blended CPM View</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Total Investment</div>
+                            <div class="metric-value" id="compClientTotal">$0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Blended CPM</div>
+                            <div class="metric-value" style="color: #639922;" id="compBlendedCPM">$0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Fee Markup</div>
+                            <div class="metric-value" id="compMarkupPercent">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Fee Impact Analysis</h2>
+                <div class="fees-breakdown">
+                    <div>
+                        <div class="fee-item">
+                            <span class="fee-label">Internal CPM (Media Only)</span>
+                            <span class="fee-value" id="compInternalCPM">$0</span>
+                        </div>
+                        <div class="fee-item">
+                            <span class="fee-label">Blended CPM (Client)</span>
+                            <span class="fee-value" style="color: #639922;" id="compBlendedCPM2">$0</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="fee-item">
+                            <span class="fee-label">CPM Increase</span>
+                            <span class="fee-value" id="compCPMIncrease">$0</span>
+                        </div>
+                        <div class="fee-item fee-total">
+                            <span class="fee-label">Fee % of Client Cost</span>
+                            <span class="fee-value" id="compFeePercent">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="export-section">
+            <h3>Export & Print</h3>
+            <div class="button-group">
+                <button class="primary" onclick="exportJSON()">📥 Export as JSON</button>
+                <button class="primary" onclick="printInternal()">🖨️ Print Internal Plan</button>
+                <button class="primary" onclick="printClient()">🖨️ Print Client Plan</button>
+                <button onclick="resetData()">🔄 Reset All</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currency = 'USD';
+        const currencySymbol = { USD: '$', AED: 'د.إ' };
+
+        const plan = {
+            campaignName: '',
+            client: '',
+            objective: '',
+            flightStartDate: '',
+            flightEndDate: '',
+            campaignDays: 0,
+            budget: 0,
+            channels: [
+                { name: 'PDOOH Channel 1', type: 'PDOOH', flatFee: false, budget: 0, impressions: 0, cpm: null },
+                { name: 'PDOOH Channel 2', type: 'PDOOH', flatFee: false, budget: 0, impressions: 0, cpm: null },
+                { name: 'In-Store Channel 1', type: 'In-Store', flatFee: false, budget: 0, impressions: 0, cpm: null },
+                { name: 'In-Store Channel 2', type: 'In-Store', flatFee: false, budget: 0, impressions: 0, cpm: null },
+                { name: 'Mobile Channel 1', type: 'Mobile', flatFee: false, budget: 0, impressions: 0, cpm: null },
+                { name: 'Outdoor Channel 1', type: 'Outdoor', flatFee: false, budget: 0, impressions: 0, cpm: null },
+                { name: 'Other Channel 1', type: 'Other', flatFee: false, budget: 0, impressions: 0, cpm: null }
+            ],
+            hmFeePercent: 10,
+            dspFeePercent: 15,
+            sspFeePercent: 15,
+            vrFeePercent: 10
+        };
+
+        let charts = {};
+
+        function setCurrency(curr) {
+            currency = curr;
+            document.querySelectorAll('.currency-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            updateMetrics();
+        }
+
+        function formatCurrency(amount) {
+            const sym = currencySymbol[currency];
+            return sym + ' ' + Math.round(amount).toLocaleString();
+        }
+
+        function calculateMissing(channel) {
+            const { budget, impressions, cpm } = channel;
+            if (budget && impressions && !cpm) {
+                channel.cpm = (budget / impressions * 1000);
+            } else if (budget && cpm && !impressions) {
+                channel.impressions = Math.round((budget / cpm) * 1000);
+            } else if (impressions && cpm && !budget) {
+                channel.budget = (impressions * cpm) / 1000;
+            }
+        }
+
+        function loadUI() {
+            document.getElementById('campaignName').value = plan.campaignName;
+            document.getElementById('client').value = plan.client;
+            document.getElementById('objective').value = plan.objective;
+            document.getElementById('flightStartDate').value = plan.flightStartDate;
+            document.getElementById('flightEndDate').value = plan.flightEndDate;
+            document.getElementById('budget').value = plan.budget;
+            document.getElementById('hmFeePercent').value = plan.hmFeePercent;
+            document.getElementById('dspFeePercent').value = plan.dspFeePercent;
+            document.getElementById('sspFeePercent').value = plan.sspFeePercent;
+            document.getElementById('vrFeePercent').value = plan.vrFeePercent;
+            calculateCampaignDays();
+            renderChannels();
+            updateMetrics();
+        }
+
+        function calculateCampaignDays() {
+            const startDate = document.getElementById('flightStartDate').value;
+            const endDate = document.getElementById('flightEndDate').value;
+            
+            if (startDate && endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                document.getElementById('campaignDays').value = days > 0 ? days : 0;
+                plan.campaignDays = days > 0 ? days : 0;
+            } else {
+                document.getElementById('campaignDays').value = '';
+                plan.campaignDays = 0;
+            }
+        }
+
+        function renderChannels() {
+            const tbody = document.getElementById('channelTable');
+            tbody.innerHTML = '';
+            plan.channels.forEach((ch, idx) => {
+                calculateMissing(ch);
+                const flatFeeChecked = ch.flatFee ? 'checked' : '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td><input type="text" value="${ch.name}" onchange="updateChannelName(${idx}, this.value)" style="width: 100%;"></td>
+                        <td><select onchange="updateChannelType(${idx}, this.value)" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option ${ch.type === 'PDOOH' ? 'selected' : ''}>PDOOH</option>
+                            <option ${ch.type === 'In-Store' ? 'selected' : ''}>In-Store</option>
+                            <option ${ch.type === 'Mobile' ? 'selected' : ''}>Mobile</option>
+                            <option ${ch.type === 'Outdoor' ? 'selected' : ''}>Outdoor</option>
+                            <option ${ch.type === 'Flat Fee' ? 'selected' : ''}>Flat Fee</option>
+                            <option ${ch.type === 'Other' ? 'selected' : ''}>Other</option>
+                        </select></td>
+                        <td><input type="checkbox" ${flatFeeChecked} onchange="updateChannelFlatFee(${idx}, this.checked)" style="width: 20px; height: 20px; cursor: pointer;"></td>
+                        <td><input type="number" value="${ch.budget || ''}" onchange="updateChannelField(${idx}, 'budget', this.value)" step="0.01" min="0" placeholder="${ch.flatFee ? 'Amount' : 'Budget'}"></td>
+                        <td ${ch.flatFee ? 'style="opacity: 0.5;"' : ''}><input type="number" value="${ch.impressions || ''}" onchange="updateChannelField(${idx}, 'impressions', this.value)" min="0" placeholder="Impressions" ${ch.flatFee ? 'disabled' : ''}></td>
+                        <td ${ch.flatFee ? 'style="opacity: 0.5;"' : ''}><input type="number" value="${ch.cpm ? ch.cpm.toFixed(2) : ''}" onchange="updateChannelField(${idx}, 'cpm', this.value)" step="0.01" min="0" placeholder="CPM" ${ch.flatFee ? 'disabled' : ''}></td>
+                        <td><button class="danger" style="padding: 6px 10px; background: #E24B4A; color: white; border-color: #E24B4A;" onclick="removeChannel(${idx})">✕</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateChannelFlatFee(idx, isFlat) {
+            plan.channels[idx].flatFee = isFlat;
+            if (isFlat) {
+                plan.channels[idx].impressions = 0;
+                plan.channels[idx].cpm = null;
+            }
+            renderChannels();
+            updateMetrics();
+        }
+
+        function updateChannelName(idx, name) {
+            plan.channels[idx].name = name;
+            updateMetrics();
+        }
+
+        function updateChannelType(idx, type) {
+            plan.channels[idx].type = type;
+            updateMetrics();
+        }
+
+        function updateChannelField(idx, field, value) {
+            const ch = plan.channels[idx];
+            const numValue = parseFloat(value) || 0;
+            if (field === 'budget') ch.budget = numValue;
+            else if (field === 'impressions') ch.impressions = numValue;
+            else if (field === 'cpm') ch.cpm = numValue;
+            calculateMissing(ch);
+            renderChannels();
+            updateMetrics();
+        }
+
+        function removeChannel(idx) {
+            plan.channels.splice(idx, 1);
+            renderChannels();
+            updateMetrics();
+        }
+
+        function clearAllChannels() {
+            if (confirm('Remove all channels? This cannot be undone.')) {
+                plan.channels = [];
+                renderChannels();
+                updateMetrics();
+            }
+        }
+
+        function addChannel() {
+            const name = document.getElementById('newChannelName').value || 'New Channel';
+            const type = document.getElementById('newChannelType').value;
+            const budget = parseFloat(document.getElementById('newChannelBudget').value) || 0;
+            const impressions = parseFloat(document.getElementById('newChannelImpressions').value) || 0;
+            const cpm = parseFloat(document.getElementById('newChannelCPM').value) || null;
+            
+            const ch = { name, type, flatFee: type === 'Flat Fee', budget, impressions: type === 'Flat Fee' ? 0 : impressions, cpm: type === 'Flat Fee' ? null : cpm };
+            calculateMissing(ch);
+            plan.channels.push(ch);
+            document.getElementById('newChannelName').value = '';
+            document.getElementById('newChannelBudget').value = '';
+            document.getElementById('newChannelImpressions').value = '';
+            document.getElementById('newChannelCPM').value = '';
+            renderChannels();
+            updateMetrics();
+        }
+
+        function updateMetrics() {
+            plan.campaignName = document.getElementById('campaignName').value;
+            plan.client = document.getElementById('client').value;
+            plan.objective = document.getElementById('objective').value;
+            plan.flightStartDate = document.getElementById('flightStartDate').value;
+            plan.flightEndDate = document.getElementById('flightEndDate').value;
+            plan.budget = parseFloat(document.getElementById('budget').value) || 0;
+            plan.hmFeePercent = parseFloat(document.getElementById('hmFeePercent').value) || 0;
+            plan.dspFeePercent = parseFloat(document.getElementById('dspFeePercent').value) || 0;
+            plan.sspFeePercent = parseFloat(document.getElementById('sspFeePercent').value) || 0;
+            plan.vrFeePercent = parseFloat(document.getElementById('vrFeePercent').value) || 0;
+
+            const mediaTotal = plan.channels.reduce((s, ch) => s + (ch.budget || 0), 0);
+            const totalImpressions = plan.channels.reduce((s, ch) => s + (ch.impressions || 0), 0);
+            
+            const hmFee = (plan.budget * plan.hmFeePercent) / 100;
+            const dspFee = (mediaTotal * plan.dspFeePercent) / 100;
+            const sspFee = ((mediaTotal - dspFee) * plan.sspFeePercent) / 100;
+            const vrFee = (plan.budget * plan.vrFeePercent) / 100;
+            const totalFees = hmFee + dspFee + sspFee + vrFee;
+            const totalCostInternal = mediaTotal + totalFees;
+            
+            const internalCPM = totalImpressions > 0 ? (mediaTotal / totalImpressions * 1000) : 0;
+            const blendedCPM = totalImpressions > 0 ? (totalCostInternal / totalImpressions * 1000) : 0;
+            const cpmIncrease = blendedCPM - internalCPM;
+            const feePercent = totalCostInternal > 0 ? ((totalFees / totalCostInternal) * 100).toFixed(1) : 0;
+            const markupPercent = internalCPM > 0 ? ((cpmIncrease / internalCPM) * 100).toFixed(1) : 0;
+            
+            const assignedBudget = mediaTotal;
+            const remaining = plan.budget - totalCostInternal;
+            const isOverBudget = remaining < 0;
+
+            document.getElementById('internalTitle').textContent = `${plan.campaignName} - Internal Plan`;
+            document.getElementById('clientTitle').textContent = `${plan.campaignName} - Client Proposal`;
+
+            document.getElementById('internalMediaCost').textContent = formatCurrency(mediaTotal);
+            document.getElementById('internalTotalFees').textContent = formatCurrency(totalFees);
+            document.getElementById('internalTotalCost').textContent = formatCurrency(totalCostInternal);
+            document.getElementById('internalImpressions').textContent = Math.round(totalImpressions).toLocaleString();
+
+            document.getElementById('internalFeeMediaCost').textContent = formatCurrency(mediaTotal);
+            document.getElementById('internalFeeHM').textContent = formatCurrency(hmFee);
+            document.getElementById('internalFeeDSP').textContent = formatCurrency(dspFee);
+            document.getElementById('internalFeeSSP').textContent = formatCurrency(sspFee);
+            document.getElementById('internalFeeVR').textContent = formatCurrency(vrFee);
+            document.getElementById('internalFeeTotalAmount').textContent = formatCurrency(totalFees);
+
+            document.getElementById('clientTotalCost').textContent = formatCurrency(totalCostInternal);
+            document.getElementById('clientImpressions').textContent = Math.round(totalImpressions).toLocaleString();
+            document.getElementById('clientBlendedCPM').textContent = formatCurrency(blendedCPM);
+            document.getElementById('clientSummaryInvestment').textContent = formatCurrency(totalCostInternal);
+            document.getElementById('clientSummaryImpressions').textContent = Math.round(totalImpressions).toLocaleString();
+            document.getElementById('clientSummaryBlendedCPM').textContent = formatCurrency(blendedCPM);
+
+            document.getElementById('budgetTotal').textContent = formatCurrency(plan.budget);
+            document.getElementById('budgetAssigned').textContent = formatCurrency(assignedBudget);
+            document.getElementById('budgetTotalCost').textContent = formatCurrency(totalCostInternal);
+            document.getElementById('budgetRemainingAmount').textContent = formatCurrency(remaining);
+            
+            const budgetRemainingCard = document.getElementById('budgetRemaining');
+            budgetRemainingCard.classList.remove('warning', 'danger');
+            if (isOverBudget) {
+                budgetRemainingCard.classList.add('danger');
+            } else if (remaining < assignedBudget * 0.1) {
+                budgetRemainingCard.classList.add('warning');
+            }
+
+            document.getElementById('compMediaCost').textContent = formatCurrency(mediaTotal);
+            document.getElementById('compFees').textContent = formatCurrency(totalFees);
+            document.getElementById('compInternalTotal').textContent = formatCurrency(totalCostInternal);
+            document.getElementById('compClientTotal').textContent = formatCurrency(totalCostInternal);
+            document.getElementById('compBlendedCPM').textContent = formatCurrency(blendedCPM);
+            document.getElementById('compMarkupPercent').textContent = markupPercent + '%';
+            document.getElementById('compInternalCPM').textContent = formatCurrency(internalCPM);
+            document.getElementById('compBlendedCPM2').textContent = formatCurrency(blendedCPM);
+            document.getElementById('compCPMIncrease').textContent = formatCurrency(cpmIncrease);
+            document.getElementById('compFeePercent').textContent = feePercent + '%';
+
+            renderInternalChannels();
+            renderClientChannels();
+        }
+
+        function renderInternalChannels() {
+            const tbody = document.getElementById('internalChannelTable');
+            tbody.innerHTML = '';
+            plan.channels.forEach(ch => {
+                if (ch.budget > 0 || ch.impressions > 0) {
+                    if (ch.flatFee) {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${ch.name}</td>
+                                <td>${formatCurrency(ch.budget)}</td>
+                                <td style="text-align: center; color: #999;">—</td>
+                                <td style="text-align: center; color: #999;">—</td>
+                            </tr>
+                        `;
+                    } else {
+                        const cpm = ch.impressions > 0 ? (ch.budget / ch.impressions * 1000) : 0;
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${ch.name}</td>
+                                <td>${formatCurrency(ch.budget)}</td>
+                                <td>${Math.round(ch.impressions).toLocaleString()}</td>
+                                <td><strong>${formatCurrency(cpm)}</strong></td>
+                            </tr>
+                        `;
+                    }
+                }
+            });
+            renderInternalBudgetChart();
+        }
+
+        function renderInternalBudgetChart() {
+            const validChannels = plan.channels.filter(ch => (ch.budget || 0) > 0);
+            const colors = ['#185FA5', '#D85A30', '#639922', '#BA7517', '#A32D2D', '#4A6FA5', '#D4A574'];
+            
+            if (charts.internalBudgetChart) charts.internalBudgetChart.destroy();
+            const ctx = document.getElementById('internalBudgetChart');
+            if (ctx && validChannels.length > 0) {
+                charts.internalBudgetChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: validChannels.map(ch => ch.name),
+                        datasets: [{
+                            data: validChannels.map(ch => ch.budget || 0),
+                            backgroundColor: colors.slice(0, validChannels.length),
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed || 0) / total * 100).toFixed(1);
+                                        return `${context.label}: ${formatCurrency(context.parsed || 0)} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderClientChannels() {
+            const tbody = document.getElementById('clientChannelTable');
+            tbody.innerHTML = '';
+            const mediaSum = plan.channels.reduce((s, ch) => s + (ch.budget || 0), 0);
+            const dspFee = (mediaSum * plan.dspFeePercent) / 100;
+            const sspFee = ((mediaSum - dspFee) * plan.sspFeePercent) / 100;
+            const vrFee = (plan.budget * plan.vrFeePercent) / 100;
+            const totalCost = mediaSum + 
+                            ((plan.budget * plan.hmFeePercent) / 100) +
+                            dspFee +
+                            sspFee +
+                            vrFee;
+            const totalImpressions = plan.channels.reduce((s, ch) => s + (ch.impressions || 0), 0);
+            
+            plan.channels.forEach(ch => {
+                if (ch.budget > 0 || ch.impressions > 0) {
+                    if (ch.flatFee) {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${ch.name}</td>
+                                <td>${formatCurrency(ch.budget)}</td>
+                                <td style="text-align: center; color: #999;">—</td>
+                                <td style="text-align: center; color: #999;">—</td>
+                            </tr>
+                        `;
+                    } else {
+                        const proportionalCost = (ch.budget / plan.channels.reduce((s, c) => s + (c.budget || 0), 0)) * totalCost;
+                        const blendedCPM = ch.impressions > 0 ? (proportionalCost / ch.impressions * 1000) : 0;
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${ch.name}</td>
+                                <td>${formatCurrency(proportionalCost)}</td>
+                                <td>${Math.round(ch.impressions).toLocaleString()}</td>
+                                <td><strong style="color: #639922;">${formatCurrency(blendedCPM)}</strong></td>
+                            </tr>
+                        `;
+                    }
+                }
+            });
+            renderClientBudgetChart(totalCost);
+        }
+
+        function renderClientBudgetChart(totalCost) {
+            const validChannels = plan.channels.filter(ch => (ch.budget || 0) > 0);
+            const colors = ['#185FA5', '#D85A30', '#639922', '#BA7517', '#A32D2D', '#4A6FA5', '#D4A574'];
+            
+            const mediaSum = validChannels.reduce((s, ch) => s + (ch.budget || 0), 0);
+            const channelInvestments = validChannels.map(ch => {
+                return (ch.budget / plan.channels.reduce((s, c) => s + (c.budget || 0), 0)) * totalCost;
+            });
+            
+            if (charts.clientBudgetChart) charts.clientBudgetChart.destroy();
+            const ctx = document.getElementById('clientBudgetChart');
+            if (ctx && validChannels.length > 0) {
+                charts.clientBudgetChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: validChannels.map(ch => ch.name),
+                        datasets: [{
+                            data: channelInvestments,
+                            backgroundColor: colors.slice(0, validChannels.length),
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed || 0) / total * 100).toFixed(1);
+                                        return `${context.label}: ${formatCurrency(context.parsed || 0)} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function switchPlan(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            
+            if (tab === 'edit') document.getElementById('editTab').classList.remove('hidden');
+            else if (tab === 'internal') document.getElementById('internalTab').classList.remove('hidden');
+            else if (tab === 'client') document.getElementById('clientTab').classList.remove('hidden');
+            else if (tab === 'compare') document.getElementById('compareTab').classList.remove('hidden');
+        }
+
+        function exportJSON() {
+            const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'media_plan.json';
+            a.click();
+        }
+
+        function printInternal() {
+            const printWindow = window.open('', '', 'width=900,height=600');
+            const flightDates = plan.flightStartDate && plan.flightEndDate ? 
+                `${plan.flightStartDate} to ${plan.flightEndDate} (${plan.campaignDays} days)` : 'Not specified';
+            printWindow.document.write(`
+                <h2>${plan.campaignName} - Internal Plan</h2>
+                <p><strong>Client:</strong> ${plan.client}</p>
+                <p><strong>Objective:</strong> ${plan.objective}</p>
+                <p><strong>Flight Dates:</strong> ${flightDates}</p>
+                <p><strong>Total Budget:</strong> ${formatCurrency(plan.budget)}</p>
+                <table border="1" cellpadding="8">
+                    <tr><th>Channel</th><th>Budget</th><th>Impressions</th><th>CPM</th></tr>
+                    ${plan.channels.map(ch => `<tr><td>${ch.name}</td><td>${formatCurrency(ch.budget)}</td><td>${ch.impressions}</td><td>${formatCurrency(ch.cpm || 0)}</td></tr>`).join('')}
+                </table>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function printClient() {
+            const printWindow = window.open('', '', 'width=900,height=600');
+            const flightDates = plan.flightStartDate && plan.flightEndDate ? 
+                `${plan.flightStartDate} to ${plan.flightEndDate} (${plan.campaignDays} days)` : 'Not specified';
+            const mediaSum = plan.channels.reduce((s, ch) => s + (ch.budget || 0), 0);
+            const dspFee = (mediaSum * plan.dspFeePercent) / 100;
+            const sspFee = ((mediaSum - dspFee) * plan.sspFeePercent) / 100;
+            const vrFee = (plan.budget * plan.vrFeePercent) / 100;
+            const totalCost = mediaSum +
+                            ((plan.budget * plan.hmFeePercent) / 100) +
+                            dspFee +
+                            sspFee +
+                            vrFee;
+            const totalImpressions = plan.channels.reduce((s, ch) => s + (ch.impressions || 0), 0);
+            const blendedCPM = totalImpressions > 0 ? (totalCost / totalImpressions * 1000) : 0;
+            printWindow.document.write(`
+                <h2>${plan.campaignName} - Client Proposal</h2>
+                <p><strong>Client:</strong> ${plan.client}</p>
+                <p><strong>Objective:</strong> ${plan.objective}</p>
+                <p><strong>Flight Dates:</strong> ${flightDates}</p>
+                <p><strong>Total Investment:</strong> ${formatCurrency(totalCost)} | <strong>Blended CPM:</strong> ${formatCurrency(blendedCPM)}</p>
+                <table border="1" cellpadding="8">
+                    <tr><th>Channel</th><th>Investment</th><th>Impressions</th><th>Blended CPM</th></tr>
+                    ${plan.channels.map(ch => {
+                        const proportionalCost = (ch.budget / plan.channels.reduce((s, c) => s + (c.budget || 0), 0)) * totalCost;
+                        const blended = ch.impressions > 0 ? (proportionalCost / ch.impressions * 1000) : 0;
+                        return `<tr><td>${ch.name}</td><td>${formatCurrency(proportionalCost)}</td><td>${ch.impressions}</td><td>${formatCurrency(blended)}</td></tr>`;
+                    }).join('')}
+                </table>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function resetData() {
+            if (confirm('Reset all data?')) {
+                location.reload();
+            }
+        }
+
+        loadUI();
+    </script>
+</body>
+</html>
